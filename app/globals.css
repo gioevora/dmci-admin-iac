@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+    
+.fc .fc-button-primary{
+    background-color: rgb(7, 7, 158)!important;
+}
