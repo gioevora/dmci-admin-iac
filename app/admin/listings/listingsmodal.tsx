@@ -1,8 +1,25 @@
 import axios from 'axios';
-import React, { useState } from 'react';
-import { IoAddCircleOutline } from 'react-icons/io5';
+import React, { useState, useEffect } from 'react';
+import { LuPlus } from 'react-icons/lu';
 import toast from 'react-hot-toast';
 import BtnLoadingSpinner from '@/app/components/spinner';
+import {
+    Autocomplete,
+    AutocompleteItem,
+    Button,
+    Divider,
+    Input,
+    Modal,
+    ModalBody,
+    ModalContent,
+    ModalHeader,
+    Select,
+    SelectItem,
+    Textarea,
+    useDisclosure,
+} from '@heroui/react';
+import { getAuthHeaders } from '@/app/utility/auth';
+import { useRouter } from 'next/navigation';
 
 interface ListingsData {
     name: string;
@@ -12,10 +29,17 @@ interface ListingsData {
     unit_type: string;
     unit_location: string;
     unit_price: string;
-    bathrooms: string;
     description: string;
+    furnish_status: string;
+    property_id: string;
+    item: string[];
     images?: File[] | null;
     status: string;
+}
+
+interface Property {
+    id: string;
+    name: string;
 }
 
 interface ListingsModalProps {
@@ -24,8 +48,13 @@ interface ListingsModalProps {
 
 const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
     const [isLoading, setIsLoading] = useState(false);
-    const [isModalOpen, setModalOpen] = useState(false);
+    const { isOpen, onOpen, onOpenChange } = useDisclosure();
+    const router = useRouter();
+    const [properties, setProperties] = useState<Property[]>([]);
+    const [values, setValues] = useState<string[]>([]);
+    const [inputValue, setInputValue] = useState<string>("");
 
+    // ✅ Updated formData to include items
     const [formData, setFormData] = useState<ListingsData>({
         name: '',
         email: '',
@@ -34,16 +63,74 @@ const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
         unit_type: '',
         unit_location: '',
         unit_price: '',
-        bathrooms: '',
         description: '',
+        furnish_status: 'Fully Furnished',
+        property_id: '',
+        item: [],
         images: [],
         status: 'Pending',
     });
 
+    // ✅ Handle item addition/removal on Enter key
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && e.currentTarget.value.trim() !== '') {
+            const inputValue = e.currentTarget.value.trim();
+
+            if (values.includes(inputValue)) {
+                setValues(values.filter((value) => value !== inputValue)); 
+            } else {
+                setValues([...values, inputValue]); 
+            }
+
+            handleClear();
+        }
+    };
+
+    const handleValueChange = (value: string) => {
+        setInputValue(value);
+    };
+
+    const handleClear = () => {
+        setInputValue("");
+    };
+
+    const fetchProperties = async () => {
+        const headers = getAuthHeaders();
+        try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/properties`, {
+                method: 'GET',
+                headers,
+            });
+
+            if (response.status === 401) {
+                router.replace('/auth/login');
+                return;
+            }
+
+            if (response.status === 429) {
+                toast.error('Too many requests. Please try again later.');
+                return;
+            }
+
+            const data = await response.json();
+            if (data.records) {
+                setProperties(data.records);
+            }
+        } catch (error) {
+            toast.error('Error fetching properties.');
+        }
+    };
+
+    useEffect(() => {
+        fetchProperties();
+    }, []);
+
+    // ✅ Handle input changes
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
     ) => {
         const { name, value, type } = e.target;
+
         if (type === 'file') {
             const files = (e.target as HTMLInputElement).files;
             if (files) {
@@ -55,14 +142,24 @@ const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
         } else {
             setFormData((prev) => ({
                 ...prev,
-                [name]: type === 'number' ? parseInt(value, 10) : value,
+                [name]: value,
             }));
         }
     };
 
+    // ✅ Handle property selection
+    const handlePropertySelect = (key: string) => {
+        setFormData((prev) => ({
+            ...prev,
+            property_id: key,
+        }));
+    };
+
+    // ✅ Handle form submission
     const handleAddSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setIsLoading(true);
+
         try {
             const token = sessionStorage.getItem('token') || null;
             const userId = sessionStorage.getItem('user_id') || null;
@@ -74,10 +171,13 @@ const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
 
             const data = new FormData();
 
+            // ✅ Add formData fields to FormData
             Object.keys(formData).forEach((key) => {
                 const value = (formData as any)[key];
                 if (key === 'images' && Array.isArray(value)) {
-                    value.forEach((file) => data.append('images[]', file));
+                    value.forEach((file) => data.append('images[]', file)); // ✅ Multiple images
+                } else if (key === 'item') {
+                    data.append('item', JSON.stringify(values)); // ✅ Send items as JSON
                 } else {
                     data.append(key, value);
                 }
@@ -85,9 +185,15 @@ const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
 
             if (userId) data.append('user_id', userId);
 
-            const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/listings`, data, { headers });
+            // ✅ Send form data to the API
+            const response = await axios.post(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/listings`,
+                data,
+                { headers }
+            );
 
             if (response?.data) {
+                toast.success('Listings Successfully Added!');
                 setFormData({
                     name: '',
                     email: '',
@@ -96,16 +202,18 @@ const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
                     unit_type: '',
                     unit_location: '',
                     unit_price: '',
-                    bathrooms: '',
                     description: '',
+                    furnish_status: 'Fully Furnished',
+                    property_id: '',
+                    item: [],
                     images: [],
                     status: 'Pending',
                 });
-                setModalOpen(false);
-                toast.success('Operation Success!')
+                setValues([]); 
+                if (mutate) mutate();
             }
         } catch (error) {
-            toast.error('Something went wrong.');
+            toast.error('Something went wrong. Please try again.');
         } finally {
             setIsLoading(false);
         }
@@ -113,180 +221,236 @@ const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
 
     return (
         <div>
-            <button
-                type="button"
-                className="min-w-[150px] py-2 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-                onClick={() => setModalOpen(true)}
+            <Button
+                startContent={<LuPlus />}
+                size="lg"
+                variant="solid"
+                color="primary"
+                onPress={onOpen}
             >
-                <IoAddCircleOutline className="h-6 w-6" /> Add Listings
-            </button>
+                Add Listings
+            </Button>
 
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white w-full max-w-4xl p-6 rounded-lg shadow-md">
-                        <form onSubmit={handleAddSubmit}>
-                            <h3 className="text-lg font-bold mb-4">Add Property Listings</h3>
-                            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
-                                <div>
-                                    <label className="block text-sm font-medium mb-2">Owner Name</label>
-                                    <input
-                                        type="text"
-                                        name="name"
-                                        value={formData.name}
-                                        onChange={handleChange}
-                                        className="w-full border rounded-lg p-2"
-                                        placeholder="e.g., Juan Dela Cruz"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-2">Email</label>
-                                    <input
-                                        type="email"
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        className="w-full border rounded-lg p-2"
-                                        placeholder="e.g., juandelacruz@gmail.com"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-2">Phone Number</label>
-                                    <input
-                                        type="text"
-                                        name="phone"
-                                        value={formData.phone}
-                                        onChange={handleChange}
-                                        className="w-full border rounded-lg p-2"
-                                        placeholder="e.g., 09924401037"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-2">Unit Name</label>
-                                    <input
-                                        type="text"
-                                        name="unit_name"
-                                        value={formData.unit_name}
-                                        onChange={handleChange}
-                                        className="w-full border rounded-lg p-2"
-                                        placeholder="e.g., Sonora Garden Residences"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-2">Unit Type</label>
-                                    <select
-                                        name="unit_type"
-                                        className="w-full border rounded-lg p-2"
-                                        value={formData.unit_type}
-                                        onChange={handleChange}
-                                    >
-                                        <option value="">Select Unit Type</option>
-                                        <option value="1 Bedroom">1 Bedroom</option>
-                                        <option value="2 Bedroom">2 Bedroom</option>
-                                        <option value="3 Bedroom">3 Bedroom</option>
-                                        <option value="Loft">Loft</option>
-                                        <option value="Studio">Studio</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-2">Location</label>
-                                    <input
-                                        type="text"
-                                        name="unit_location"
-                                        value={formData.unit_location}
-                                        onChange={handleChange}
-                                        className="w-full border rounded-lg p-2"
-                                        placeholder="e.g., Pasig City, Philippines"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-2">Price</label>
-                                    <input
-                                        type="text"
-                                        name="unit_price"
-                                        value={formData.unit_price}
-                                        onChange={handleChange}
-                                        className="w-full border rounded-lg p-2"
-                                        placeholder="e.g., 1000000"
-                                        required
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium mb-2">Bathrooms</label>
-                                    <input
-                                        type="text"
-                                        name="bathrooms"
-                                        value={formData.bathrooms}
-                                        onChange={handleChange}
-                                        className="w-full border rounded-lg p-2"
-                                        required
-                                    />
-                                </div>
-                                <div className="col-span-2">
-                                    <label className="block text-sm font-medium mb-2">Description</label>
-                                    <textarea
-                                        name="description"
-                                        value={formData.description}
-                                        onChange={handleChange}
-                                        className="w-full border rounded-lg p-2"
-                                        placeholder="Provide a brief description of the property..."
-                                        required
-                                    />
-                                </div>
-                                <div className="col-span-2">
-                                    <label className="block text-sm font-medium mb-2">Images</label>
-                                    <input
-                                        type="file"
-                                        name="images"
-                                        multiple
-                                        onChange={handleChange}
-                                        className="block w-full text-sm border rounded-lg p-2"
-                                        required
-                                    />
-                                </div>
-                                {/* <div className="col-span-2">
-                                    <label className="block text-sm font-medium mb-2">Status</label>
-                                    <select
-                                        name="status"
-                                        value={formData.status}
-                                        onChange={handleChange}
-                                        className="w-full border rounded-lg p-2"
-                                        required
-                                    >
-                                        <option value="">Select Status</option>
-                                        <option value="available">Available</option>
-                                        <option value="sold">Sold</option>
-                                        <option value="pending">Pending</option>
-                                    </select>
-                                </div> */}
-                            </div>
-                            <div className="flex justify-end items-center gap-x-2 py-3 px-4 border-t">
-                                <button
-                                    type="button"
-                                    className="min-w-24 min-h-10 py-2 px-3 rounded-lg bg-gray-200 text-gray-800 hover:bg-gray-300"
-                                    onClick={() => setModalOpen(false)}
-                                    disabled={isLoading}
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className={`min-w-24 min-h-10 py-2 px-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}
-                                    disabled={isLoading}
-                                >
-                                    {isLoading ? (
-                                        <BtnLoadingSpinner />
-                                    ) : 'Submit'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <Modal size="5xl" isOpen={isOpen} scrollBehavior="outside" onOpenChange={onOpenChange}>
+                <ModalContent>
+                    {(onclose) => (
+                        <div className="px-4 py-6">
+                            <ModalHeader>
+                                <h3 className="text-lg font-bold mb-4 uppercase">
+                                    Add Property Listings
+                                </h3>
+                            </ModalHeader>
+                            <ModalBody>
+                                <form onSubmit={handleAddSubmit}>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {/* Owner Name */}
+                                        <div className="col-span-2">
+                                            <Input
+                                                isRequired
+                                                size="lg"
+                                                type="text"
+                                                name="name"
+                                                label="Owner Name"
+                                                labelPlacement="outside"
+                                                value={formData.name}
+                                                onChange={handleChange}
+                                                placeholder="e.g., Juan Dela Cruz"
+                                            />
+                                        </div>
+
+                                        {/* Email and Phone */}
+                                        <div>
+                                            <Input
+                                                isRequired
+                                                size="lg"
+                                                type="email"
+                                                name="email"
+                                                label="Email"
+                                                labelPlacement="outside"
+                                                value={formData.email}
+                                                onChange={handleChange}
+                                                placeholder="e.g., juandelacruz@gmail.com"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Input
+                                                isRequired
+                                                size="lg"
+                                                type="text"
+                                                name="phone"
+                                                label="Phone Number"
+                                                labelPlacement="outside"
+                                                value={formData.phone}
+                                                onChange={handleChange}
+                                                placeholder="e.g., 09924401037"
+                                            />
+                                        </div>
+
+                                        <Divider className="col-span-2 my-4" />
+
+                                        {/* Property Details */}
+                                        <div>
+                                            <Input
+                                                isRequired
+                                                size="lg"
+                                                type="text"
+                                                name="unit_name"
+                                                label="Unit Name"
+                                                labelPlacement="outside"
+                                                value={formData.unit_name}
+                                                onChange={handleChange}
+                                                placeholder="e.g., Sonora Garden Residences"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <Autocomplete
+                                                isRequired
+                                                size="lg"
+                                                label="Property"
+                                                labelPlacement="outside"
+                                                placeholder="Select Property"
+                                                selectedKey={formData.property_id}
+                                                onSelectionChange={(key) =>
+                                                    handlePropertySelect(key as string)
+                                                }
+                                            >
+                                                {properties.map((item) => (
+                                                    <AutocompleteItem key={item.id}>
+                                                        {item.name}
+                                                    </AutocompleteItem>
+                                                ))}
+                                            </Autocomplete>
+                                        </div>
+
+                                        {/* Unit Type and Furnish Status */}
+                                        <div>
+                                            <Select
+                                                isRequired
+                                                size="lg"
+                                                label="Unit Type"
+                                                labelPlacement="outside"
+                                                name="unit_type"
+                                                value={formData.unit_type}
+                                                onChange={handleChange}
+                                            >
+                                                <SelectItem key="1 Bedroom">1 Bedroom</SelectItem>
+                                                <SelectItem key="2 Bedroom">2 Bedroom</SelectItem>
+                                                <SelectItem key="3 Bedroom">3 Bedroom</SelectItem>
+                                                <SelectItem key="Loft">Loft</SelectItem>
+                                                <SelectItem key="Studio">Studio</SelectItem>
+                                            </Select>
+                                        </div>
+
+                                        <div>
+                                            <Select
+                                                isRequired
+                                                size="lg"
+                                                label="Furnish Status"
+                                                labelPlacement="outside"
+                                                name="furnish_status"
+                                                value={formData.furnish_status}
+                                                onChange={handleChange}
+                                            >
+                                                <SelectItem key="Fully Furnished">Fully Furnished</SelectItem>
+                                                <SelectItem key="Semi Furnished">Semi Furnished</SelectItem>
+                                            </Select>
+                                        </div>
+
+                                        {/* Location and Price */}
+                                        <div>
+                                            <Input
+                                                isRequired
+                                                size="lg"
+                                                type="text"
+                                                name="unit_location"
+                                                label="Location"
+                                                labelPlacement="outside"
+                                                value={formData.unit_location}
+                                                onChange={handleChange}
+                                                placeholder="e.g., Pasig City, Philippines"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Input
+                                                isRequired
+                                                size="lg"
+                                                type="text"
+                                                name="unit_price"
+                                                label="Unit Price"
+                                                labelPlacement="outside"
+                                                value={formData.unit_price}
+                                                onChange={handleChange}
+                                                placeholder="e.g., 1000000"
+                                            />
+                                        </div>
+
+                                        {/* Item Input */}
+                                        <div className="col-span-2">
+                                            <Input
+                                                size="lg"
+                                                type="text"
+                                                name="unit_price"
+                                                label="Unit Price (Optional)"
+                                                labelPlacement='outside'
+                                                placeholder="Add or remove items (press Enter)"
+                                                onKeyDown={handleKeyDown}
+                                                className="w-full"
+                                                value={inputValue}
+                                                onValueChange={handleValueChange}
+                                            />
+                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                {values.map((value, index) => (
+                                                    <span
+                                                        key={index}
+                                                        className="bg-gray-200 px-2 py-1 rounded-lg text-sm cursor-pointer"
+                                                    >
+                                                        {value}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="col-span-2">
+                                            <Textarea
+                                                isRequired
+                                                size="lg"
+                                                label="Description"
+                                                labelPlacement="outside"
+                                                name="description"
+                                                value={formData.description}
+                                                onChange={handleChange}
+                                                placeholder="Provide a brief description of the property..."
+                                            />
+                                        </div>
+
+                                        <div className="col-span-2">
+                                            <Input
+                                                isRequired
+                                                size="lg"
+                                                type="file"
+                                                name="images"
+                                                multiple
+                                                onChange={handleChange}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="flex justify-end items-center gap-x-2 mt-4 px-4">
+                                        <Button color="danger" variant="light" onPress={onclose}>
+                                            Close
+                                        </Button>
+                                        <Button type="submit" variant="solid" color="primary">
+                                            {isLoading ? <BtnLoadingSpinner /> : 'Add Listings'}
+                                        </Button>
+                                    </div>
+                                </form>
+                            </ModalBody>
+                        </div>
+                    )}
+                </ModalContent>
+            </Modal>
         </div>
     );
 };

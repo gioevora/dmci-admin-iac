@@ -1,4 +1,4 @@
-import {nextui} from '@nextui-org/theme';
+import {heroui} from "@heroui/theme";
 import type { Config } from "tailwindcss";
 
 const config: Config = {
@@ -7,7 +7,7 @@ const config: Config = {
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./node_modules/preline/preline.js",
-    "./node_modules/@nextui-org/theme/dist/components/(table|checkbox|form|spacer).js"
+    "./node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}"
   ],
   theme: {
     extend: {
@@ -17,6 +17,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [require('preline/plugin'),nextui()],
+  darkMode: "class",
+ plugins: [require('preline/plugin'),heroui()],
 };
 export default config;

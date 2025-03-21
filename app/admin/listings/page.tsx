@@ -2,6 +2,7 @@ import React from 'react'
 import ListingsTable from './listingstb'
 
 const page = () => {
+  
   return (
     <div className="container">
       <h1 className='font-semibold text-3xl uppercase'>Listing</h1>
