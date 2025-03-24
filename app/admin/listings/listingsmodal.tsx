@@ -25,9 +25,7 @@ interface ListingsData {
     name: string;
     email: string;
     phone: string;
-    unit_name: string;
     unit_type: string;
-    unit_location: string;
     unit_price: string;
     description: string;
     furnish_status: string;
@@ -35,11 +33,21 @@ interface ListingsData {
     item: string[];
     images?: File[] | null;
     status: string;
+    unit_area: string;
+    unit_cut: string;
+    building_id: string;
+
+}
+
+interface Building {
+    id: string;
+    name: string;
 }
 
 interface Property {
     id: string;
     name: string;
+    buildings: Building[];
 }
 
 interface ListingsModalProps {
@@ -51,6 +59,7 @@ const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
     const { isOpen, onOpen, onOpenChange } = useDisclosure();
     const router = useRouter();
     const [properties, setProperties] = useState<Property[]>([]);
+    const [buildings, setBuildings] = useState<Building[]>([]);
     const [values, setValues] = useState<string[]>([]);
     const [inputValue, setInputValue] = useState<string>("");
 
@@ -59,16 +68,17 @@ const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
         name: '',
         email: '',
         phone: '',
-        unit_name: '',
         unit_type: '',
-        unit_location: '',
         unit_price: '',
         description: '',
-        furnish_status: 'Fully Furnished',
+        furnish_status: '',
         property_id: '',
         item: [],
         images: [],
-        status: 'Pending',
+        status: '',
+        unit_area: '',
+        unit_cut: '',
+        building_id: '',
     });
 
     // ✅ Handle item addition/removal on Enter key
@@ -77,9 +87,9 @@ const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
             const inputValue = e.currentTarget.value.trim();
 
             if (values.includes(inputValue)) {
-                setValues(values.filter((value) => value !== inputValue)); 
+                setValues(values.filter((value) => value !== inputValue));
             } else {
-                setValues([...values, inputValue]); 
+                setValues([...values, inputValue]);
             }
 
             handleClear();
@@ -93,6 +103,8 @@ const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
     const handleClear = () => {
         setInputValue("");
     };
+
+
 
     const fetchProperties = async () => {
         const headers = getAuthHeaders();
@@ -125,6 +137,10 @@ const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
         fetchProperties();
     }, []);
 
+
+
+
+
     // ✅ Handle input changes
     const handleChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -148,12 +164,21 @@ const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
     };
 
     // ✅ Handle property selection
-    const handlePropertySelect = (key: string) => {
+    const handlePropertySelect = async (key: string) => {
         setFormData((prev) => ({
             ...prev,
             property_id: key,
         }));
+
+        // Fetch buildings for selected property
+        const selectedProperty = properties.find((property) => property.id === key);
+        if (selectedProperty && selectedProperty.buildings) {
+            setBuildings(selectedProperty.buildings);
+        } else {
+            setBuildings([]);
+        }
     };
+
 
     // ✅ Handle form submission
     const handleAddSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -198,18 +223,19 @@ const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
                     name: '',
                     email: '',
                     phone: '',
-                    unit_name: '',
                     unit_type: '',
-                    unit_location: '',
                     unit_price: '',
                     description: '',
-                    furnish_status: 'Fully Furnished',
+                    furnish_status: '',
                     property_id: '',
                     item: [],
                     images: [],
-                    status: 'Pending',
+                    status: '',
+                    unit_area: '',
+                    unit_cut: '',
+                    building_id: '',
                 });
-                setValues([]); 
+                setValues([]);
                 if (mutate) mutate();
             }
         } catch (error) {
@@ -289,19 +315,7 @@ const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
                                         <Divider className="col-span-2 my-4" />
 
                                         {/* Property Details */}
-                                        <div>
-                                            <Input
-                                                isRequired
-                                                size="lg"
-                                                type="text"
-                                                name="unit_name"
-                                                label="Unit Name"
-                                                labelPlacement="outside"
-                                                value={formData.unit_name}
-                                                onChange={handleChange}
-                                                placeholder="e.g., Sonora Garden Residences"
-                                            />
-                                        </div>
+
 
                                         <div>
                                             <Autocomplete
@@ -323,6 +337,26 @@ const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
                                             </Autocomplete>
                                         </div>
 
+                                        <div>
+                                            <Select
+                                                isRequired
+                                                size="lg"
+                                                label="Unit Buildings"
+                                                labelPlacement="outside"
+                                                placeholder="Select Building"
+                                                name="building_id"
+                                                value={formData.building_id}
+                                                onChange={handleChange}
+                                            >
+                                                {buildings.map((building) => (
+                                                    <SelectItem key={building.id}>
+                                                        {building.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </Select>
+                                        </div>
+
+
                                         {/* Unit Type and Furnish Status */}
                                         <div>
                                             <Select
@@ -330,15 +364,31 @@ const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
                                                 size="lg"
                                                 label="Unit Type"
                                                 labelPlacement="outside"
+                                                placeholder='Select type'
                                                 name="unit_type"
                                                 value={formData.unit_type}
                                                 onChange={handleChange}
                                             >
-                                                <SelectItem key="1 Bedroom">1 Bedroom</SelectItem>
-                                                <SelectItem key="2 Bedroom">2 Bedroom</SelectItem>
-                                                <SelectItem key="3 Bedroom">3 Bedroom</SelectItem>
+                                                <SelectItem key="1BR">1 Bedroom</SelectItem>
+                                                <SelectItem key="2BR">2 Bedroom</SelectItem>
                                                 <SelectItem key="Loft">Loft</SelectItem>
                                                 <SelectItem key="Studio">Studio</SelectItem>
+                                            </Select>
+                                        </div>
+
+                                        <div>
+                                            <Select
+                                                isRequired
+                                                size="lg"
+                                                label="Status"
+                                                labelPlacement="outside"
+                                                name="status"
+                                                placeholder='Unit Status'
+                                                value={formData.status}
+                                                onChange={handleChange}
+                                            >
+                                                <SelectItem key="Pre-Selling">Pre-Selling</SelectItem>
+                                                <SelectItem key="RFO">Ready For Occupancy</SelectItem>
                                             </Select>
                                         </div>
 
@@ -349,6 +399,7 @@ const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
                                                 label="Furnish Status"
                                                 labelPlacement="outside"
                                                 name="furnish_status"
+                                                placeholder='Furnish Status'
                                                 value={formData.furnish_status}
                                                 onChange={handleChange}
                                             >
@@ -358,19 +409,7 @@ const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
                                         </div>
 
                                         {/* Location and Price */}
-                                        <div>
-                                            <Input
-                                                isRequired
-                                                size="lg"
-                                                type="text"
-                                                name="unit_location"
-                                                label="Location"
-                                                labelPlacement="outside"
-                                                value={formData.unit_location}
-                                                onChange={handleChange}
-                                                placeholder="e.g., Pasig City, Philippines"
-                                            />
-                                        </div>
+
                                         <div>
                                             <Input
                                                 isRequired
@@ -385,13 +424,43 @@ const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
                                             />
                                         </div>
 
+                                        <div>
+                                            <Input
+                                                isRequired
+                                                size="lg"
+                                                type="text"
+                                                name="unit_area"
+                                                label="Unit Area"
+                                                labelPlacement="outside"
+                                                value={formData.unit_area}
+                                                onChange={handleChange}
+                                                placeholder="e.g., sqm"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <Select
+                                                isRequired
+                                                size="lg"
+                                                label="Unit Cut"
+                                                labelPlacement="outside"
+                                                name="unit_cut"
+                                                placeholder='Select Unit Cut'
+                                                value={formData.unit_cut}
+                                                onChange={handleChange}
+                                            >
+                                                <SelectItem key="Korean Cut">Korean Cut</SelectItem>
+                                                <SelectItem key="European Cut">European Cut</SelectItem>
+                                            </Select>
+                                        </div>
+
                                         {/* Item Input */}
                                         <div className="col-span-2">
                                             <Input
                                                 size="lg"
                                                 type="text"
-                                                name="unit_price"
-                                                label="Unit Price (Optional)"
+                                                name="item"
+                                                label="Item (Optional)"
                                                 labelPlacement='outside'
                                                 placeholder="Add or remove items (press Enter)"
                                                 onKeyDown={handleKeyDown}
