@@ -355,7 +355,7 @@ const ListingsModal: React.FC<ListingsModalProps> = ({ mutate }) => {
                                                 ))}
                                             </Select>
                                         </div>
-
+                                        
 
                                         {/* Unit Type and Furnish Status */}
                                         <div>
