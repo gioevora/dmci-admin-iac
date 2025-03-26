@@ -7,6 +7,7 @@ import {
   Html,
   Img,
   Preview,
+  Section,
   Text,
 } from "@react-email/components";
 import * as React from "react";
@@ -31,11 +32,21 @@ export const NewPropertyEmail = ({
       <Container style={container}>
         <Img
           src="https://dmci-agent-bakit.s3.ap-southeast-1.amazonaws.com/logo/dmci-logo-only.png"
-          height="170"
+          height="80"
           alt="DMCI Homes Logo"
           style={logo}
         />
-        <Heading style={h1}>New Property Added!</Heading>
+
+        <Section>
+          <Img
+            src="https://dmci-agent-bakit.s3.amazonaws.com/properties/images/01JH7MWMTVXJE07AYRBR5SH6J6.webp"
+            height="auto"
+            width="1000"
+            alt="DMCI Homes Logo"
+            style={logo}
+          />
+        </Section>
+
         <Text style={text}>Good Day,</Text>
         <Text style={text}>
           We are excited to inform you that a new property has been added.
