@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios, { AxiosError } from 'axios';
+import { FaTrashCan } from 'react-icons/fa6';
 
 interface Certificate {
     id: number;
@@ -137,6 +138,27 @@ const Certificate = () => {
         }
     };
 
+    const handleDelete = async (id: number) => {
+        const confirmDelete = window.confirm('Are you sure you want to delete this certificate?');
+        if (!confirmDelete) return;
+
+        try {
+            const accessToken = sessionStorage.getItem('token');
+            await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/api/certificates/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                },
+            });
+
+            setCertificates((prevCertificates) =>
+                prevCertificates.filter((certificate) => certificate.id !== id)
+            );
+        } catch (error) {
+            console.error('Error deleting certificate:', error);
+            alert('Failed to delete the certificate. Please try again.');
+        }
+    };
+
     const formatDate = (date: string) => {
         const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long' };
         return new Intl.DateTimeFormat('en-US', options).format(new Date(date));
@@ -180,6 +202,12 @@ const Certificate = () => {
                                     <p className="mt-1 text-sm text-gray-600">
                                         {certificate.description}
                                     </p>
+                                    <button
+                                        onClick={() => handleDelete(certificate.id)}
+                                        className="mt-2 text-red-600 hover:text-red-800 text-sm flex items-center gap-2"
+                                    >
+                                        <FaTrashCan/> Delete
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -197,7 +225,7 @@ const Certificate = () => {
             </div>
 
             {showForm && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-40 pointer-events-auto">
+                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 pointer-events-auto">
                     <div className="relative bg-white rounded-lg w-1/3 p-6 z-50">
                         <button
                             onClick={() => setShowForm(false)}

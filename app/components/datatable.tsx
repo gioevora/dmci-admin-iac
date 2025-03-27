@@ -89,8 +89,8 @@ const DataTable: FC<DataTableProps<any>> = ({
     };
 
     return (
-        <div className="relative">
-            <div className="overflow-auto max-w-full max-h-[50vh]">
+        <div>
+            <div>
                 <Toaster position="top-center" reverseOrder={false} />
                 <table className="table-auto w-full border-collapse border border-gray-300">
                     <thead className="divide-y divide-gray-200 border-t-2 border-b-2 text-left">

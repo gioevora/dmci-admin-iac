@@ -208,8 +208,7 @@ const AlbumTable: React.FC = () => {
         ...(userType === "Admin" ? [{ label: "Agent Name", accessor: (prop: Property) => prop.user?.name }] : []),
         { label: "Property Name", accessor: (prop: Property) => prop.name },
         { label: "Location", accessor: (prop: Property) => prop.location },
-        { label: "Min Price", accessor: (prop: Property) => prop.min_price, isPrice: true },
-        { label: "Max Price", accessor: (prop: Property) => prop.max_price, isPrice: true },
+        { label: "Price", accessor: (prop: Property) => prop.min_price, isPrice: true },
         { label: "Status", accessor: (prop: Property) => prop.status, isStatus: true },
 
         {

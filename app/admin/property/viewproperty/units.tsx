@@ -117,7 +117,7 @@ const PropertyUnits: React.FC<PropertyDetailsContentProps> = ({ id }) => {
         },
         validationSchema: Yup.object({
             type: Yup.string().required('Unit type is required'),
-            area: Yup.number().required('Unit area is required').positive().integer(),
+            area: Yup.number().required('Unit area is required').positive(),
             price: Yup.number().required('Price is required').positive(),
             status: Yup.string().required('Status is required'),
         }),

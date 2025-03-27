@@ -43,7 +43,7 @@ const LoginForm: React.FC = () => {
             sessionStorage.setItem('profile_id', record.profile.id);
             setCookie(null, 'token', token, { path: '/', maxAge: 30 * 24 * 60 * 60 });
             console.log(response.data)
-            router.replace('/admin/property');
+            router.replace('/admin/dashboard');
         } catch (error) {
             const axiosError = error as AxiosError;
             if (axiosError.response?.data && typeof axiosError.response.data === 'object') {

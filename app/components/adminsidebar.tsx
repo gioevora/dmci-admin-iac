@@ -63,28 +63,14 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ pathname }) => {
         }
     }, [pathname, loadingPath]);
 
-    // const propertiesCount = data?.records?.properties || 0;
-    // const applicationsCount = data?.records?.applications || 0;
-    // const listingCount = data?.records?.listings || 0;
-    // const viewingCount = data?.records?.viewings || 0;
-    // const planCount = data?.records?.plans || 0;
-    // const questionCount = data?.records?.questions || 0;
-    // const articleCount = data?.records?.articles || 0;
-    // const testimonialCount = data?.records?.testimonials || 0;
-    // const videoCount = data?.records?.videos || 0;
-    // const contractCount = data?.records?.contracts || 0;
-    // const careersCount = data?.records?.careers || 0;
-
-
-
     const navItems = [
         { name: 'Dashboard', path: '/admin/dashboard', icon: <LuLayoutDashboard className="h-5 w-5 mr-2" /> },
         { name: 'Properties', path: '/admin/property', icon: <LuBuilding2 className="h-5 w-5 mr-2" /> },
-        { name: 'Listings', path: '/admin/listings', icon: <LuLayoutList className="h-5 w-5 mr-2" /> },
+        // { name: 'Listings', path: '/admin/listings', icon: <LuLayoutList className="h-5 w-5 mr-2" /> },
         { name: 'Schedule', path: '/admin/schedule', icon: <LuCalendarCheck className="h-5 w-5 mr-2" /> },
         { name: 'Applications', path: '/admin/application', icon: <LuNetwork className="h-5 w-5 mr-2" /> },
         // { name: 'Room Planners', path: '/admin/planner', icon: <LuLayout className="h-5 w-5 mr-2" /> },
-        { name: 'FAQ', path: '/admin/faq', icon: <LuFileQuestion className="h-5 w-5 mr-2" /> },
+        // { name: 'FAQ', path: '/admin/faq', icon: <LuFileQuestion className="h-5 w-5 mr-2" /> },
         { name: 'News & Blogs', path: '/admin/news', icon: <LuNewspaper className="h-5 w-5 mr-2" /> },
         { name: 'Testimonials', path: '/admin/testimonial', icon: <LuStar className="h-5 w-5 mr-2" /> },
         { name: 'Videos', path: '/admin/video', icon: <LuVideo className="h-5 w-5 mr-2" /> },
@@ -151,16 +137,6 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ pathname }) => {
                                         {item.icon}
                                         <span className="text-md ml-2">{item.name}</span>
                                     </div>
-                                    {/* <div>
-                                        {item.count !== undefined && loadingPath !== item.path && (
-                                            <span className="inline-flex w-8 items-center justify-center py-0.5 px-1.5 rounded-full text-xs font-medium bg-red-500 text-white">
-                                                {item.count}
-                                            </span>
-                                        )}
-                                        {loadingPath === item.path && (
-                                            <div className="animate-spin mr-2 inline-block size-4 border-[3px] border-current border-t-transparent text-blue-600 rounded-full dark:text-blue-500" role="status" aria-label="loading"></div>
-                                        )}
-                                    </div> */}
                                 </button>
                             </li>
                         ))}

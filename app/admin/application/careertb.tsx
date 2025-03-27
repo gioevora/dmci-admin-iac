@@ -18,6 +18,7 @@ import { GoSearch } from 'react-icons/go';
 import { RiArrowDownLine } from 'react-icons/ri';
 import { LuPenLine, LuTrash2 } from 'react-icons/lu';
 import { useRouter } from 'next/navigation';
+import { FaFileAlt, FaFilePdf } from 'react-icons/fa';
 
 type Category = {
     id: string;
@@ -118,49 +119,62 @@ const CareerTable: React.FC = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const currentCategories = filteredCategories.slice(startIndex, startIndex + itemsPerPage);
 
+    const fileIcons = {
+        pdf: <FaFilePdf className="w-16 h-16 text-red-500 cursor-pointer" />,
+        default: <FaFileAlt className="w-16 h-16 text-gray-500 cursor-pointer" />,
+    };
+
+
     const columns = [
-        { label: 'Name', accessor: (category: Category) => category.name },
-        { label: 'Position', accessor: (category: Category) => category.position },
-        { label: 'Email', accessor: (category: Category) => category.email },
-        { label: 'Phone', accessor: (category: Category) => category.phone },
-        { label: 'Address', accessor: (category: Category) => category.address },
+        { label: "Name", accessor: (category: Category) => category.name },
+        { label: "Position", accessor: (category: Category) => category.position },
+        { label: "Email", accessor: (category: Category) => category.email },
+        { label: "Phone", accessor: (category: Category) => category.phone },
+        { label: "Address", accessor: (category: Category) => category.address },
         {
-            label: 'Resume',
-            accessor: (category: Category) => (
-                <Gallery withDownloadButton>
-                    <Item original={`https://dmci-agent-bakit.s3.ap-southeast-1.amazonaws.com/careers/applications/${category.resume}`} height="500" width="500">
-                        {({ ref, open }) => (
-                            <img
-                                ref={ref}
-                                onClick={open}
-                                src={`https://dmci-agent-bakit.s3.ap-southeast-1.amazonaws.com/careers/applications/${category.resume}`}
-                                alt="Resume"
-                                className="w-16 h-16 object-cover rounded-lg cursor-pointer"
-                            />
-                        )}
-                    </Item>
-                </Gallery>
-            ),
-        }
-        // {
-        //     label: 'Actions',
-        //     accessor: (category: Category) => (
-        //         <div className='flex gap-2'>
-        //             {/* <button
-        //                 onClick={() => handleUpdateClick(category)}
-        //                 className="py-1 px-2 flex items-center text-xs bg-blue-600 text-white p-1 rounded-lg gap-1 hover:bg-blue-800"
-        //             >
-        //                 <LuPenLine /> Edit
-        //             </button> */}
-        //             <button
-        //                 onClick={() => handleDeleteClick(category.id)}
-        //                 className="py-1 px-2 flex items-center text-xs bg-red-600 text-white p-1 rounded-lg gap-1 hover:bg-red-800"
-        //             >
-        //                 <LuTrash2 /> Delete
-        //             </button>
-        //         </div>
-        //     ),
-        // },
+            label: "Resume",
+            accessor: (category: Category) => {
+                const fileUrl = `https://dmci-agent-bakit.s3.ap-southeast-1.amazonaws.com/careers/applications/${category.resume}`;
+                const fileExtension = category.resume.split(".").pop()?.toLowerCase();
+
+                // Check if the file is an image
+                const isImage = ["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(fileExtension || "");
+
+                return (
+                    <Gallery withDownloadButton>
+                        <Item original={fileUrl} height="500" width="500">
+                            {({ ref, open }) => (
+                                <>
+                                    {isImage ? (
+                                        <div className='flex justify-center items-center'>
+                                            <img
+                                                ref={ref}
+                                                onClick={open}
+                                                src={fileUrl}
+                                                alt="Resume"
+                                                className="w-16 h-16 object-cover rounded-lg cursor-pointer"
+                                            />
+                                        </div>
+
+                                    ) : (
+                                        <a
+                                            href={fileUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center justify-center"
+                                        >
+                                            <div ref={ref} className="cursor-pointer">
+                                                {fileExtension === "pdf" ? fileIcons.pdf : fileIcons.default}
+                                            </div>
+                                        </a>
+                                    )}
+                                </>
+                            )}
+                        </Item>
+                    </Gallery>
+                );
+            },
+        },
     ];
 
     return (
@@ -209,9 +223,6 @@ const CareerTable: React.FC = () => {
                             <GoSearch />
                         </div>
                     </div>
-                </div>
-                <div className="flex gap-2 mt-4 justify-end">
-                    {/* <AddNews mutate={mutate} /> */}
                 </div>
             </div>
 
